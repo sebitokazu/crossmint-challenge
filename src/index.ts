@@ -1,13 +1,16 @@
 import dotenv from "dotenv";
 import MegaverseApi from "./megaverse.api";
-import { Coordinate } from "./types";
+import { Color, Coordinate, Direction } from "./types";
 import { RateLimitQueue } from "./rateLimitQueue";
+import { parseAstralObject } from "./utils";
 
 dotenv.config();
 
 let megaverseApi: MegaverseApi;
 
 async function phase1() {
+  console.log("Starting phase 1");
+
   const grid = await megaverseApi.getGoalMap();
 
   const rowSize = grid.length;
@@ -54,13 +57,53 @@ async function phase1() {
     );
   }
 
-  rateLimitQueue.startProcessing();
-
-  while (!rateLimitQueue.isQueueEmpty()) {
+  while (rateLimitQueue.isRunning()) {
     await new Promise((resolve) => setTimeout(resolve, 1500));
   }
 
   console.log("Finished phase 1");
+}
+
+async function phase2() {
+  console.log("Starting phase 2");
+
+  const grid = await megaverseApi.getGoalMap();
+
+  const rowSize = grid.length;
+  const columnSize = grid[0].length;
+
+  const rateLimitQueue = new RateLimitQueue(1000);
+
+  //iterate the grid and log elements that are not SPACE
+  for (let row = 0; row < rowSize; row++) {
+    for (let column = 0; column < columnSize; column++) {
+      if (grid[row][column] !== "SPACE") {
+        const definition = parseAstralObject(grid[row][column]);
+        rateLimitQueue.addToQueue(
+          async () => {
+            await megaverseApi.postAstralObject(
+              definition.type,
+              row,
+              column,
+              definition.metadata
+            );
+            console.log(`Posted ${definition.type} ${definition.metadata ? definition.metadata : ''} at ${row}, ${column} `);
+          },
+          () => {
+            console.error(
+              `Error posting ${definition.type} ${definition.metadata ? definition.metadata : ''} at ${row}, ${column}`
+            );
+          }
+        );
+      }
+    }
+  }
+
+  while (rateLimitQueue.isRunning()) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+
+  console.log("Finished phase 2");
 }
 
 async function main() {
@@ -79,11 +122,15 @@ async function main() {
   } else {
     try {
       switch (arg[0]) {
+        case "goal":
+          const goalMap = await megaverseApi.getGoalMap();
+          console.log(goalMap);
+          break;
         case "1":
           await phase1();
           break;
         case "2":
-          throw new Error("Phase 2 not implemented yet");
+          await phase2();
           break;
         case "help":
           console.log("Available phases options: 1 or 2");

@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from "axios";
-import { MegaverseMap } from "./types";
+import { BaseAstral, Color, Direction, MegaverseMap } from "./types";
 
 class MegaverseApi {
   private axiosInstance: AxiosInstance;
@@ -10,6 +10,27 @@ class MegaverseApi {
     });
   }
 
+  async postAstralObject(
+    type: Omit<BaseAstral, "SPACE">,
+    row: number,
+    column: number,
+    metadata?: Color | Direction
+  ): Promise<void> {
+    switch (type) {
+      case "POLYANET":
+        await this.postPolyanet(row, column);
+        break;
+      case "SOLOON":
+        await this.postSoloon(row, column, metadata as Color);
+        break;
+      case "COMETH":
+        await this.postCometh(row, column, metadata as Direction);
+        break;
+      default:
+        throw new Error("Unknown astral object");
+    }
+  }
+
   async postPolyanet(row: number, column: number): Promise<void> {
     await this.post("/polyanets", { row, column });
   }
@@ -18,7 +39,7 @@ class MegaverseApi {
     await this.delete("/polyanets", { row, column });
   }
 
-  async postSoloon(row: number, column: number, color: string): Promise<void> {
+  async postSoloon(row: number, column: number, color: Color): Promise<void> {
     await this.post("/soloons", { row, column, color });
   }
 
@@ -29,7 +50,7 @@ class MegaverseApi {
   async postCometh(
     row: number,
     column: number,
-    direction: string
+    direction: Direction
   ): Promise<void> {
     await this.post("/comeths", { row, column, direction });
   }
@@ -56,7 +77,7 @@ class MegaverseApi {
 
   private async delete(url: string, params: any): Promise<void> {
     await this.axiosInstance.delete(url, {
-      params: { ...params, candidateId: this.candidateId },
+      data: { ...params, candidateId: this.candidateId },
     });
   }
 }

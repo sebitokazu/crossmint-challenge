@@ -1,7 +1,8 @@
-import axios, { AxiosResponse } from "axios";
+import axios from "axios";
 
 export class RateLimitQueue {
   private queue: (() => Promise<boolean>)[] = [];
+  private isProcessing = false;
 
   constructor(private sleepInterval: number) {}
 
@@ -32,17 +33,19 @@ export class RateLimitQueue {
     };
 
     this.queue.push(task);
+
+    if (!this.isProcessing) {
+      await this.processQueue();
+    }
   }
 
-  isQueueEmpty() {
-    return this.queue.length == 0;
-  }
-
-  async startProcessing() {
-    await this.processQueue();
+  isRunning() {
+    return this.queue.length > 0 || this.isProcessing;
   }
 
   private async processQueue() {
+    this.isProcessing = true;
+
     let success = false;
     while (this.queue.length > 0) {
       const task = this.queue.shift();
@@ -53,5 +56,7 @@ export class RateLimitQueue {
         }
       }
     }
+
+    this.isProcessing = false;
   }
 }
