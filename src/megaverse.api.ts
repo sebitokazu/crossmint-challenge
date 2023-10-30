@@ -40,7 +40,7 @@ class MegaverseApi {
   }
 
   async postSoloon(row: number, column: number, color: Color): Promise<void> {
-    await this.post("/soloons", { row, column, color });
+    await this.post("/soloons", { row, column, color: color.toLowerCase() });
   }
 
   async deleteSoloon(row: number, column: number): Promise<void> {
@@ -52,7 +52,7 @@ class MegaverseApi {
     column: number,
     direction: Direction
   ): Promise<void> {
-    await this.post("/comeths", { row, column, direction });
+    await this.post("/comeths", { row, column, direction: direction.toLowerCase() });
   }
 
   async deleteCometh(row: number, column: number): Promise<void> {
